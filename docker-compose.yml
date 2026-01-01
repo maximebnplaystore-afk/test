@@ -130,6 +130,7 @@ services:
 
   migrator:
     image: veremes/vchart/migrator:test
+    command: [ "default" ]
     environment:
       - PGHOST=${PGHOST:-postgres}
       - PGPORT=${PGPORT:-5432}
