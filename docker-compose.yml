@@ -129,7 +129,7 @@ services:
       start_period: 30s
 
   migrator:
-    image: veremes/vchart/migrator:test
+    image: veremes/vchart/migrator:test1
     command: [ "default" ]
     environment:
       - PGHOST=${PGHOST:-postgres}
