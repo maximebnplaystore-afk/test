@@ -147,6 +147,8 @@ services:
         max_attempts: 3
   pgadmin:
     image: dpage/pgadmin4:latest
+    ports:
+      - "8080:80"
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@local.dev}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
