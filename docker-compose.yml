@@ -182,6 +182,11 @@ secrets:
     external: true
     name: vitis_db
 
+configs:
+  pgadmin_servers:
+    external: true
+    name: pgadmin_servers
+
 volumes:
   postgres_data:
     name: vchart_postgres_data
