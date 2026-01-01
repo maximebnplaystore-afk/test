@@ -1,23 +1,163 @@
-services:
-  # Simulation de votre API ou Client
-  webapp:
-    image: nginx:1.29.0
-    networks:
-      - test_network
-    deploy:
-      replicas: 1
-    environment:
-      - DB_PASSWORD=${DB_PASSWORD:-initial_password}
+# ==============================================================================
+# Stack Application vChart
+# ==============================================================================
+# Stack generic deployable on all environments
+# Command: docker stack deploy -c stacks/app.yml vchart
+#
+# Prerequisites:
+# 1. The infra stack (core or remote) must be deployed
+# 2. Load the environment variables
+# 3. Or via Portainer with the appropriate .env file
+# ==============================================================================
 
-  # Votre Job de migration
-  migration-job:
-    image: alpine:latest
+services:
+  client:
+    image: veremes/vchart/client:test
     networks:
       - test_network
-    # On affiche la version pour vérifier dans les logs
-    command: [ "sh", "-c", "echo 'Exécution des migrations pour la version ${APP_VERSION}...'; sleep 10; echo 'Migration terminée !'" ]
     deploy:
-      mode: replicated-job
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: [ "CMD", "curl", "-sf", "http://localhost:80/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  php:
+    image: veremes/vchart/api:test
+    environment:
+      # Application
+      - APP_DOMAIN=${APP_DOMAIN}
+      - APP_PROTOCOL=${APP_PROTOCOL:-https}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TZ=${TZ:-Europe/Paris}
+      # Database
+      - PGHOST=${PGHOST:-postgres}
+      - PGPORT=${PGPORT:-5432}
+      - PGDATABASE=${PGDATABASE:-vchart}
+      - PGUSER=${PGUSER:-u_util}
+      - PGPASSWORD=${PGPASSWORD:-u_util}
+      - PGSSLMODE=${PGSSLMODE:-prefer}
+      # Optional features can be added via Portainer if needed
+      # See envs/*.env.example for the full list
+    secrets:
+      - vitis_db
+    volumes:
+      - vitis_conf:/var/www/vas/src/Module/Vitis/conf
+    networks:
+      - test_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: [ "CMD", "curl", "-sf", "http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      - POSTGRES_DB=${PGDATABASE:-vchart}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - test_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${PGDATABASE:-vchart}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+db-tools:
+  image: veremes/vchart/migrator:test
+  environment:
+    - PGHOST=${PGHOST:-postgres}
+    - PGPORT=${PGPORT:-5432}
+    - PGDATABASE=${PGDATABASE:-vchart}
+    - PGUSER=${POSTGRES_USER:-postgres}
+    - PGPASSWORD=${POSTGRES_PASSWORD:-postgres}
+  networks:
+    - test_network
+  deploy:
+    mode: replicated-job
+    replicas: 1
+    restart_policy:
+      condition: on-failure
+      max_attempts: 3
+
+secrets:
+  vitis_db:
+    external: true
+    name: vitis_db
+
+volumes:
+  postgres_data:
+    name: vchart_postgres_data
+  pgadmin_data:
+    name: pgadmin_data
+  vitis_conf:
+    name: vitis_conf
+    # Persists application configuration (properties.json, user_properties.json)
 
 networks:
   test_network:
