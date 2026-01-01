@@ -128,22 +128,23 @@ services:
       retries: 5
       start_period: 30s
 
-db-tools:
-  image: veremes/vchart/migrator:test
-  environment:
-    - PGHOST=${PGHOST:-postgres}
-    - PGPORT=${PGPORT:-5432}
-    - PGDATABASE=${PGDATABASE:-vchart}
-    - PGUSER=${POSTGRES_USER:-postgres}
-    - PGPASSWORD=${POSTGRES_PASSWORD:-postgres}
-  networks:
-    - test_network
-  deploy:
-    mode: replicated-job
-    replicas: 1
-    restart_policy:
-      condition: on-failure
-      max_attempts: 3
+  migrator:
+    image: veremes/vchart/migrator:test
+    environment:
+      - PGHOST=${PGHOST:-postgres}
+      - PGPORT=${PGPORT:-5432}
+      - PGDATABASE=${PGDATABASE:-vchart}
+      - PGUSER=${POSTGRES_USER:-postgres}
+      - PGPASSWORD=${POSTGRES_PASSWORD:-postgres}
+    networks:
+      - test_network
+    deploy:
+      mode: replicated-job
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
 
 secrets:
   vitis_db:
