@@ -1,7 +1,7 @@
 services:
   # Simulation de votre API ou Client
   webapp:
-    image: nginx:${APP_VERSION:-1.24}
+    image: nginx:${APP_VERSION:-1.25}
     networks:
       - test_network
     deploy:
