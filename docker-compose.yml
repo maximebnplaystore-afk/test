@@ -1,0 +1,25 @@
+services:
+  # Simulation de votre API ou Client
+  webapp:
+    image: nginx:${APP_VERSION:-1.24}
+    networks:
+      - test_network
+    deploy:
+      replicas: 1
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD:-initial_password}
+
+  # Votre Job de migration
+  migration-job:
+    image: alpine:latest
+    networks:
+      - test_network
+    # On affiche la version pour vérifier dans les logs
+    command: [ "sh", "-c", "echo 'Exécution des migrations pour la version ${APP_VERSION}...'; sleep 10; echo 'Migration terminée !'" ]
+    deploy:
+      mode: replicated-job
+
+networks:
+  test_network:
+    external: true
+    name: test_network
