@@ -12,9 +12,11 @@
 
 services:
   client:
-    image: veremes/vchart/client:test
+    image: veremes/vchart/client:${VCHART_VERSION}
     networks:
       - test_network
+    ports:
+      - "80:80"
     deploy:
       mode: replicated
       replicas: 1
@@ -42,7 +44,9 @@ services:
       start_period: 5s
 
   php:
-    image: veremes/vchart/api:test
+    image: veremes/vchart/api:${VCHART_VERSION}
+    ports:
+      - "8080:8080"
     environment:
       # Application
       - APP_DOMAIN=${APP_DOMAIN}
@@ -92,6 +96,8 @@ services:
 
   postgres:
     image: postgis/postgis:16-3.4
+    ports:
+      - "5432:5432"
     environment:
       - POSTGRES_DB=${PGDATABASE:-vchart}
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
@@ -129,7 +135,7 @@ services:
       start_period: 30s
 
   migrator:
-    image: veremes/vchart/migrator:test1
+    image: veremes/vchart/migrator:${VCHART_VERSION}
     command: [ "default" ]
     environment:
       - PGHOST=${PGHOST:-postgres}
@@ -149,7 +155,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     ports:
-      - "8080:80"
+      - "8081:80"
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@local.dev}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
